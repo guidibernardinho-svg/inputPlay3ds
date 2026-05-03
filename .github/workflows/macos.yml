@@ -1,0 +1,60 @@
+name: Build inputPlay3DS macOS App
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SDL2
+        run: |
+          brew update
+          brew install sdl2 cmake
+
+      - name: Configure project
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build project
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      - name: Create .app bundle
+        run: |
+          mkdir -p inputPlay3DS.app/Contents/MacOS
+          mkdir -p inputPlay3DS.app/Contents/Resources
+
+          cp build/inputPlay3DS inputPlay3DS.app/Contents/MacOS/inputPlay3DS
+          cp Info.plist inputPlay3DS.app/Contents/Info.plist
+
+          chmod +x inputPlay3DS.app/Contents/MacOS/inputPlay3DS
+
+      - name: Package DMG
+        run: |
+          hdiutil create -volname inputPlay3DS \
+            -srcfolder inputPlay3DS.app \
+            -ov -format UDZO inputPlay3DS.dmg
+
+      - name: Upload .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: inputPlay3DS-macOS-app
+          path: inputPlay3DS.app
+
+      - name: Upload .dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: inputPlay3DS-macOS-dmg
+          path: inputPlay3DS.dmg
